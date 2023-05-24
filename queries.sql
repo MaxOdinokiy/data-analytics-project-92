@@ -1,3 +1,6 @@
+select count(*) as customers_count 
+from customers c;
+
 select 
 	CONCAT(new_table.first_name, ' ', new_table.last_name) as name,
 	count(new_table.sales_id) as operations,
@@ -65,3 +68,55 @@ from (
 		CONCAT(new_table.first_name, ' ', new_table.last_name)
 	order by to_char(new_table.sale_date, 'd') asc, income desc
 	) as res;
+
+select 
+	case 
+		when age between 10 and 15 then '10-15'
+		when age between 16 and 25 then '16-25'
+		when age between 26 and 40 then '26-40'
+		else '40+'
+	end as age_category,
+	count(c.customer_id) as count
+from customers c 
+group by age_category
+order by age_category;
+
+select
+	customers_sales.sale_date as date,
+	count(distinct customers_sales.customer_id) as total_customers,
+	sum(customers_sales.sale_income) as income
+from (
+	select
+		s.sales_id,
+		s.customer_id,
+		to_char(s.sale_date, 'YYYY-MM') as sale_date, 
+		s.quantity * p.price as sale_income
+	from sales s 
+	inner join products p on p.product_id = s.sales_id
+	order by s.customer_id 
+	) as customers_sales
+group by customers_sales.sale_date
+order by customers_sales.sale_date;
+
+
+select 	
+	s2.customer,
+	s2.sale_date,
+	s2.seller
+from (
+	select 
+		s.customer_id,
+		concat(c.first_name, ' ', c.last_name) as customer,
+		s.sale_date,
+		row_number() over(partition by s.customer_id order by s.sale_date) as row_number,
+		s.sales_person_id,
+		concat(e.first_name, ' ', e.last_name) as seller,
+		s.product_id 
+	from sales s
+	join products p on p.product_id = s.product_id 
+	join employees e on e.employee_id = s.sales_person_id 
+	join customers c on c.customer_id =s.customer_id 
+	where p.price = 0
+	order by s.customer_id
+) as s2	
+where s2.row_number = 1;
